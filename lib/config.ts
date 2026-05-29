@@ -23,7 +23,10 @@ export const PAY_TO_ADDRESS = (process.env.PAY_TO_ADDRESS ??
 
 // Price per premium signal call, as a USDC dollar string. Dotenv treats `$`
 // as expansion syntax, so normalize values like `.05` or `0.05` back to `$0.05`.
-const rawSignalPrice = process.env.SIGNAL_PRICE ?? "$0.05";
+const rawSignalPrice = (process.env.SIGNAL_PRICE ?? "$0.05").replace(
+  /^\\\$/,
+  "$",
+);
 export const SIGNAL_PRICE = rawSignalPrice.startsWith("$")
   ? rawSignalPrice
   : `$${rawSignalPrice.startsWith(".") ? `0${rawSignalPrice}` : rawSignalPrice}`;
