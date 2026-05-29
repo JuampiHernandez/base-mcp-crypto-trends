@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "base-mcp": {
+      "url": "https://mcp.base.org"
+    },
+    "morpho": {
+      "url": "https://mcp.morpho.org/"
+    }
+  }
+}
