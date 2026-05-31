@@ -180,12 +180,14 @@ Autonomous flow (you decide details):
    - **~50%** → directional leg: swap USDC to the chosen asset (**cbBTC** for BTC, **ETH/WETH** for ETH) via Base MCP `swap`.
    - **~50%** → yield leg: deposit USDC into the best Morpho vault.
    - Conviction tilt: if the chosen asset is `STRONG_BUY`/`ACCUMULATE` with high confidence, you may lean to ~60% directional; if both assets are weak (`REDUCE`/`AVOID`), lean defensive (~70%+ to yield) and keep the directional leg small. Always keep both legs non-zero so the demo shows a swap **and** a deposit.
-7. Yield leg — find the best **USDC** Morpho vault on the same chain (Cursor: Morpho CLI or Morpho MCP):
+7. Yield leg — pick a **reputable** USDC Morpho vault on the same chain (Morpho MCP `morpho_query_vaults` or CLI):
+   - **Sort by TVL, not APY.** Sorting by `apy_desc` surfaces scam/test vaults advertising absurd APYs (e.g. 200,000%+) with ~$1 TVL. Never deposit into those.
+   - Choose a large, established vault (high `tvlUsd`, sane APY, low/zero fee) — e.g. Steakhouse Prime USDC, Gauntlet USDC Prime.
    ```bash
-   npx @morpho-org/cli@latest query-vaults --chain base --asset-symbol USDC --sort apy_desc --limit 5
+   npx @morpho-org/cli@latest query-vaults --chain base --asset-symbol USDC --sort tvl_desc --limit 8
    ```
    Match `--chain` to the chain holding the user’s funds (`base` for mainnet).
-8. Prepare the deposit, check `simulationOk`, then `send_calls` with all prepared calls in one batch when possible.
+8. Prepare the deposit (`morpho_prepare_deposit`), confirm the `simulation` transfers look right and `warnings` is empty, then `send_calls` with the returned approval + deposit calls in one batch.
 9. After confirmations, report: x402 cost, both signal summaries, which asset you bought and why, swap result, vault + APY, and remaining balance.
 
 Use Base MCP **`swap`** for token trades. A separate Uniswap plugin is not required for this demo.
