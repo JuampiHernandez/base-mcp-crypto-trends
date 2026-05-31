@@ -164,27 +164,36 @@ Typical user prompt:
 I have 20 USDC on Base. Make some money with it.
 ```
 
+Default strategy: **split the budget ~50/50 — half into a Morpho USDC yield
+vault, half into the higher-conviction asset (BTC or ETH).** The paid signal's
+job is to pick *which* asset to buy and to tilt the sizing — not to gate whether
+you act at all. Always do both legs unless the user says otherwise.
+
 Autonomous flow (you decide details):
 
 1. Complete Base MCP onboarding; call `get_wallets` when you need the payer address or balances.
 2. Confirm USDC (and gas) on the payer wallet for the chain in use (`base` mainnet by default).
-3. Pay for premium signal(s) via x402 on `GET /api/signal?asset=bitcoin` and/or `.../ethereum`.
-4. Read `signal`, `symbol`, `confidence`, `score`, `rationale`, and `factors`. Choose the stronger opportunity if you fetched both.
-5. Interpret signals:
-   - `STRONG_BUY` or `ACCUMULATE` on **BTC** → swap part of USDC to **cbBTC** via Base MCP `swap`.
-   - `STRONG_BUY` or `ACCUMULATE` on **ETH** → swap part of USDC to **ETH** (or WETH per swap tool) via Base MCP `swap`.
-   - `HOLD` → skip directional buy; explain why.
-   - `REDUCE` or `AVOID` → do not open risk; park in yield or report cash.
-6. Default sizing unless the user specified otherwise: up to **~50%** of budget for the directional leg, **remainder** for yield.
+3. Pay for **both** premium signals via x402: `GET /api/signal?asset=bitcoin` and `GET /api/signal?asset=ethereum`.
+4. Read `signal`, `symbol`, `confidence`, `score`, `rationale`, and `factors` for each.
+5. Pick the directional asset = the one with the **higher composite `score`** (break ties with the stronger `signal`, then higher `confidence`). This is the half you buy.
+6. Sizing (default budget split, override only if the user specifies):
+   - **~50%** → directional leg: swap USDC to the chosen asset (**cbBTC** for BTC, **ETH/WETH** for ETH) via Base MCP `swap`.
+   - **~50%** → yield leg: deposit USDC into the best Morpho vault.
+   - Conviction tilt: if the chosen asset is `STRONG_BUY`/`ACCUMULATE` with high confidence, you may lean to ~60% directional; if both assets are weak (`REDUCE`/`AVOID`), lean defensive (~70%+ to yield) and keep the directional leg small. Always keep both legs non-zero so the demo shows a swap **and** a deposit.
 7. Yield leg — find the best **USDC** Morpho vault on the same chain (Cursor: Morpho CLI or Morpho MCP):
    ```bash
    npx @morpho-org/cli@latest query-vaults --chain base --asset-symbol USDC --sort apy_desc --limit 5
    ```
    Match `--chain` to the chain holding the user’s funds (`base` for mainnet).
-8. Prepare deposit, check `simulationOk`, then `send_calls` with all prepared calls in one batch when possible.
-9. After confirmations, report: x402 cost, signal summary, swap (if any), vault + APY, and status.
+8. Prepare the deposit, check `simulationOk`, then `send_calls` with all prepared calls in one batch when possible.
+9. After confirmations, report: x402 cost, both signal summaries, which asset you bought and why, swap result, vault + APY, and remaining balance.
 
 Use Base MCP **`swap`** for token trades. A separate Uniswap plugin is not required for this demo.
+
+> Note: the payer Base Account must be **deployed on-chain** before x402/swap/
+> deposit will settle. If `eth_getCode(payer)` is `0x`, do one tiny outbound
+> `send` first (it deploys the smart wallet via the ERC-4337 EntryPoint), then
+> proceed.
 
 ---
 
