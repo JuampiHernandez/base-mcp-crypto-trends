@@ -47,21 +47,24 @@ The premium endpoint should return `402 Payment Required` until paid through x40
 
 ```bash
 PAY_TO_ADDRESS=0xYourReceivingWalletAddress
-SIGNAL_PRICE=\$0.05
-X402_NETWORK=eip155:84532
-FACILITATOR_URL=https://x402.org/facilitator
-```
-
-For Base mainnet real-USDC demo:
-
-```bash
+SIGNAL_PRICE=\$0.01
 X402_NETWORK=eip155:8453
 FACILITATOR_URL=https://api.cdp.coinbase.com/platform/v2/x402
+# Required for Base mainnet settlement — create at https://portal.cdp.coinbase.com
 CDP_API_KEY_ID=...
 CDP_API_KEY_SECRET=...
 ```
 
-Use Base Sepolia first. Flip to mainnet only after the full recording flow works.
+The default is **Base mainnet** with the Coinbase CDP facilitator (real USDC).
+CDP keys are required for mainnet verify/settle; the free tier covers 1,000
+settlements/month.
+
+To run signup-free on testnet instead (no CDP keys needed):
+
+```bash
+X402_NETWORK=eip155:84532
+FACILITATOR_URL=https://x402.org/facilitator
+```
 
 ## Base MCP Setup
 

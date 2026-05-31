@@ -112,64 +112,102 @@ Do not claim the paid signal is unlocked until the API returns the full JSON pay
 
 ---
 
+## Orchestration
+
+Apply these rules for **every** Crypto Trends workflow, including vague prompts like “make money with this $20”.
+
+### Autonomy
+
+The user gives a **goal**, not a script. You decide:
+
+- which asset to query (`bitcoin` and/or `ethereum`)
+- whether to pay for one or two premium signals
+- how to split budget between a directional buy and stable yield
+- which Morpho vault or market fits the remainder
+
+Run tools and terminal commands **without asking permission** for reads, previews, quotes, and simulations. Only stop when Base MCP requires a **Base Account approval** for spending or moving funds.
+
+Do **not** ask “should I pay for the API?” or “should I swap?” when the user already asked you to make money with their USDC. Proceed with a clear plan, then surface approval links.
+
+### Narration (demo and normal use)
+
+Explain each phase in plain English **before and after** tool use so a non-technical viewer can follow:
+
+1. **Intent** — what you are trying to accomplish next.
+2. **Tool** — which capability you are using (Crypto Trends x402, Base MCP `swap`, Morpho, etc.).
+3. **Result** — what came back (402 challenge, signal label, APY, approval link).
+4. **Why it matters** — one sentence tying the step to the user’s goal.
+
+When recording or demoing, explicitly call out:
+
+- **Crypto Trends** — “I’m buying a machine-readable signal from our paid API.”
+- **x402** — “No API key; the wallet pays USDC per HTTP 402, then retries.”
+- **Custom plugin** — “This workflow is defined in the Crypto Trends plugin, not generic MCP.”
+- **Base MCP** — “Swap and batch calls go through the user’s Base Account.”
+- **Morpho** — “Remaining USDC goes to the best vault APY I can find.”
+
+Keep narration concise; do not dump raw JSON unless the user asks.
+
+### Product URL
+
+Prefer the deployed API unless the user specifies local dev:
+
+`https://basebuilderques.vercel.app`
+
+---
+
 ## Agent Investment Orchestration
 
-Use this for prompts like:
+Typical user prompt:
 
 ```text
-I have 20 USDC on Base. Use Crypto Trends to make money with it.
+I have 20 USDC on Base. Make some money with it.
 ```
 
-Recommended flow:
+Autonomous flow (you decide details):
 
-1. Complete Base MCP onboarding and get the user's Base Account wallet only when needed.
-2. Check the user's USDC balance on Base.
-3. Fetch the Crypto Trends premium signal for `bitcoin`.
-4. Interpret the signal:
-   - `STRONG_BUY` or `ACCUMULATE`: allocate up to 50% of the user-approved budget to `cbBTC` using Base MCP `swap`.
-   - `HOLD`: do not buy BTC; continue to the USDC yield step.
-   - `REDUCE` or `AVOID`: do not buy BTC; explain why and ask before taking any market-risk action.
-5. Find a USDC yield destination on Base:
-   - Prefer Morpho CLI in Cursor:
-     ```bash
-     npx @morpho-org/cli@latest query-vaults --chain base --asset-symbol USDC --sort apy_desc --limit 5
-     ```
-   - Choose a vault only if it has reasonable liquidity and no obvious warnings. If the best choice is ambiguous, ask the user.
-6. Prepare a deposit for the remaining budget:
+1. Complete Base MCP onboarding; call `get_wallets` when you need the payer address or balances.
+2. Confirm USDC (and gas) on the payer wallet for the chain in use (`base` mainnet by default).
+3. Pay for premium signal(s) via x402 on `GET /api/signal?asset=bitcoin` and/or `.../ethereum`.
+4. Read `signal`, `symbol`, `confidence`, `score`, `rationale`, and `factors`. Choose the stronger opportunity if you fetched both.
+5. Interpret signals:
+   - `STRONG_BUY` or `ACCUMULATE` on **BTC** → swap part of USDC to **cbBTC** via Base MCP `swap`.
+   - `STRONG_BUY` or `ACCUMULATE` on **ETH** → swap part of USDC to **ETH** (or WETH per swap tool) via Base MCP `swap`.
+   - `HOLD` → skip directional buy; explain why.
+   - `REDUCE` or `AVOID` → do not open risk; park in yield or report cash.
+6. Default sizing unless the user specified otherwise: up to **~50%** of budget for the directional leg, **remainder** for yield.
+7. Yield leg — find the best **USDC** Morpho vault on the same chain (Cursor: Morpho CLI or Morpho MCP):
    ```bash
-   npx @morpho-org/cli@latest prepare-deposit --chain base --vault-address <vault> --user-address <address> --amount <amount>
+   npx @morpho-org/cli@latest query-vaults --chain base --asset-symbol USDC --sort apy_desc --limit 5
    ```
-7. Review simulation output. If `simulationOk` is false, stop and report the revert or warning.
-8. Map prepared transactions into Base MCP `send_calls`:
-   ```json
-   {
-     "chain": "base",
-     "calls": [
-       {
-         "to": "<transaction.to>",
-         "value": "<transaction.value or 0x0>",
-         "data": "<transaction.data>"
-       }
-     ]
-   }
-   ```
-9. Follow approval mode, wait for confirmation, then report:
-   - x402 signal cost
-   - signal, confidence, rationale
-   - cbBTC amount bought, if any
-   - USDC vault selected and APY
-   - transaction links/status
+   Match `--chain` to the chain holding the user’s funds (`base` for mainnet).
+8. Prepare deposit, check `simulationOk`, then `send_calls` with all prepared calls in one batch when possible.
+9. After confirmations, report: x402 cost, signal summary, swap (if any), vault + APY, and status.
+
+Use Base MCP **`swap`** for token trades. A separate Uniswap plugin is not required for this demo.
+
+---
+
+## Approvals
+
+Base MCP write tools (x402 pay, `swap`, `send_calls`) return an **approval URL**. Present each as **Approve Transaction**, refer to the destination as **Base Account**, and on macOS run `open "<url>"` when a shell is available.
+
+Wait for the user to confirm each approval before calling `get_request_status` or `complete_x402_request`. Do not claim success early.
+
+If the user asks for maximum autonomy: you still cannot skip wallet approvals in approval mode — that is a Base Account security boundary, not a Cursor limitation.
 
 ---
 
 ## Demo Prompt
 
+Minimal (preferred on video):
+
 ```text
-Use the Crypto Trends plugin. I have 20 USDC on Base. Pay for the BTC signal, decide whether to buy cbBTC, then put the rest of the USDC into the best Morpho vault. Keep every step visible for the demo video.
+I have 20 USDC on Base. Make some money with it.
 ```
 
-For a safer dry run, replace the final sentence with:
+Dry run (rehearsal only):
 
 ```text
-Do not execute swaps or deposits yet. Show me the exact actions and approval links you would request.
+I have 20 USDC on Base. Make some money with it. Show your full plan and narrate each step, but do not execute swaps or deposits yet.
 ```

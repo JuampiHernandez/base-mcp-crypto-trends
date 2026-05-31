@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@coinbase/x402": "^2.1.0",
     "@x402/core": "^2.13.0",
     "@x402/evm": "^2.13.0",
     "@x402/next": "^2.13.0",

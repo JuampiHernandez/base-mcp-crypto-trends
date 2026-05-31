@@ -1,21 +1,24 @@
 /**
  * Central config for the Crypto Trends x402 service.
  *
- * Defaults target Base Sepolia + the free x402.org facilitator so the whole
- * flow runs with zero signup. Flip the env vars below to accept real USDC on
- * Base mainnet (CDP facilitator) for the live "real money" demo.
+ * Defaults target Base mainnet + the Coinbase CDP facilitator so the demo
+ * settles real USDC. The CDP facilitator needs CDP_API_KEY_ID /
+ * CDP_API_KEY_SECRET (free tier: 1,000 settlements/month). To run signup-free
+ * on testnet instead, set X402_NETWORK=eip155:84532 and
+ * FACILITATOR_URL=https://x402.org/facilitator.
  */
 
 // CAIP-2 network id. Base mainnet = eip155:8453, Base Sepolia = eip155:84532
-export const X402_NETWORK = (process.env.X402_NETWORK ?? "eip155:84532") as
+export const X402_NETWORK = (process.env.X402_NETWORK ?? "eip155:8453") as
   | "eip155:8453"
   | "eip155:84532";
 
 // Facilitator that verifies + settles the payment.
-// - Base Sepolia (no signup): https://x402.org/facilitator
 // - Mainnet (CDP, needs keys): https://api.cdp.coinbase.com/platform/v2/x402
+// - Base Sepolia (no signup):   https://x402.org/facilitator
 export const FACILITATOR_URL =
-  process.env.FACILITATOR_URL ?? "https://x402.org/facilitator";
+  process.env.FACILITATOR_URL ??
+  "https://api.cdp.coinbase.com/platform/v2/x402";
 
 // Wallet that receives the USDC paywall payments. MUST be set in prod.
 export const PAY_TO_ADDRESS = (process.env.PAY_TO_ADDRESS ??
