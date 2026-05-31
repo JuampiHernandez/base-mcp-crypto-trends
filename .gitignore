@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# private demo notes (keep local, never publish)
+VIDEO_SCRIPT.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
